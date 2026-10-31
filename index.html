@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14532d">
+<title>Cheque Words Converter – Nepali Banking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body{font-family:'Hanken Grotesk',system-ui,sans-serif;background:#f3f1ea}
+  .dev{font-family:'Noto Sans Devanagari','Hanken Grotesk',sans-serif}
+  .paper{background:
+    repeating-linear-gradient(135deg,rgba(20,83,45,.05) 0 2px,transparent 2px 7px),
+    linear-gradient(120deg,#e7f1e4,#f4f8ee 55%,#e3eee3);}
+  .rule{border-bottom:1.5px solid #14532d55}
+  .key{height:52px;border-radius:12px;background:#f5f5f4;font-size:1.25rem;font-weight:600;transition:transform .06s,background .1s;user-select:none;touch-action:manipulation}
+  .key:active{transform:scale(.93);background:#d6e6d3}
+  .tab[aria-selected=true]{background:#14532d;color:#fff}
+  .chip{animation:pop .18s ease-out}
+  @keyframes pop{from{transform:scale(.8);opacity:0}to{transform:none;opacity:1}}
+  .cursor::after{content:'';display:inline-block;width:2px;height:1.1em;background:#14532d;margin-left:2px;vertical-align:-2px;animation:bl 1s steps(2) infinite}
+  @keyframes bl{50%{opacity:0}}
+  @media(prefers-reduced-motion:reduce){.chip,.cursor::after{animation:none}}
+  :focus-visible{outline:3px solid #14532d;outline-offset:2px}
+</style>
+</head>
+<body class="min-h-screen text-stone-900 antialiased">
+<main class="max-w-2xl mx-auto px-4 pt-6 pb-16" style="padding-top:max(1.5rem,env(safe-area-inset-top))">
+
+  <header class="mb-5">
+    <h1 class="text-2xl sm:text-3xl font-bold text-green-900">Cheque Words Converter</h1>
+    <p class="text-stone-600 mt-1">Type an amount. Get the words to write on a Nepali cheque, in English and Nepali.</p>
+  </header>
+
+  <section class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200">
+    <label for="amt" class="block text-sm font-medium text-stone-700 mb-1">Amount in rupees</label>
+    <div class="flex items-center gap-2">
+      <span class="text-lg font-bold text-green-900">Rs.</span>
+      <input id="amt" inputmode="decimal" autocomplete="off" placeholder="3,48,000"
+        class="w-full text-2xl font-semibold tracking-wide rounded-xl border border-stone-300 px-3 py-3 focus:border-green-800">
+      <button id="clr" class="shrink-0 rounded-xl border border-stone-300 px-3 py-3 text-stone-600 hover:bg-stone-100" aria-label="Clear amount">Clear</button>
+    </div>
+    <p id="err" class="text-red-700 text-sm mt-2 min-h-[1.25rem]" role="alert"></p>
+    <div class="flex flex-wrap gap-2 mt-1">
+      <button class="ex rounded-full bg-stone-100 hover:bg-stone-200 px-3 py-1 text-sm" data-v="348000">3,48,000</button>
+      <button class="ex rounded-full bg-stone-100 hover:bg-stone-200 px-3 py-1 text-sm" data-v="100000">1,00,000</button>
+      <button class="ex rounded-full bg-stone-100 hover:bg-stone-200 px-3 py-1 text-sm" data-v="10000000">1,00,00,000</button>
+      <button class="ex rounded-full bg-stone-100 hover:bg-stone-200 px-3 py-1 text-sm" data-v="25750.50">25,750.50</button>
+    </div>
+    <div class="flex flex-wrap gap-2 mt-3" aria-label="Quick add">
+      <span class="text-sm text-stone-500 self-center">Add</span>
+      <button class="qa rounded-full border border-green-800/40 text-green-900 px-3 py-1 text-sm hover:bg-green-50" data-a="1000">+ 1 Hajar</button>
+      <button class="qa rounded-full border border-green-800/40 text-green-900 px-3 py-1 text-sm hover:bg-green-50" data-a="10000">+ 10 Hajar</button>
+      <button class="qa rounded-full border border-green-800/40 text-green-900 px-3 py-1 text-sm hover:bg-green-50" data-a="100000">+ 1 Lakh</button>
+      <button class="qa rounded-full border border-green-800/40 text-green-900 px-3 py-1 text-sm hover:bg-green-50" data-a="10000000">+ 1 Crore</button>
+    </div>
+    <button id="kpT" class="mt-3 text-sm font-medium text-green-900 underline underline-offset-4" aria-expanded="false" aria-controls="kp">Show keypad</button>
+    <div id="kp" class="hidden grid grid-cols-3 gap-2 mt-2"></div>
+    <label class="flex items-center gap-2 mt-3 text-sm text-stone-700">
+      <input id="rs" type="checkbox" class="h-4 w-4 accent-green-800"> Start with “Rupees” / “रुपैयाँ”
+    </label>
+  </section>
+
+  <!-- Cheque preview -->
+  <section class="mt-5 paper rounded-xl border-2 border-green-900/40 shadow-md p-4 sm:p-5" aria-label="Cheque preview">
+    <div class="flex justify-between text-xs text-green-900/70 mb-3">
+      <span>Cheque preview</span><span id="today"></span>
+    </div>
+    <div class="flex items-end gap-2 mb-3">
+      <span class="text-sm text-green-900 shrink-0">Pay</span>
+      <span class="rule flex-1 h-5"></span>
+    </div>
+    <div class="flex gap-1 mb-2" role="tablist">
+      <button role="tab" class="tab rounded-full px-3 py-1 text-sm bg-white/70" data-k="en" aria-selected="true">English</button>
+      <button role="tab" class="tab rounded-full px-3 py-1 text-sm bg-white/70 dev" data-k="ne" aria-selected="false">नेपाली</button>
+      <button role="tab" class="tab rounded-full px-3 py-1 text-sm bg-white/70" data-k="nr" aria-selected="false">Roman</button>
+    </div>
+    <div class="min-h-[4.5rem]">
+      <p id="pTxt" class="text-lg sm:text-xl font-medium text-green-950 leading-snug cursor">Your amount in words appears here</p>
+    </div>
+    <div id="brk" class="flex flex-wrap gap-2 mt-3"></div>
+    <div class="flex justify-end mt-3">
+      <div class="border-2 border-green-900/60 bg-white/70 rounded px-3 py-1 text-lg font-bold text-green-950">
+        Rs. <span id="pNum">0</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Result cards -->
+  <section class="mt-5 space-y-3" id="cards"></section>
+  <div class="grid grid-cols-3 gap-2 mt-4">
+    <button id="all" class="rounded-xl bg-green-900 text-white font-bold py-3 hover:bg-green-800 disabled:opacity-40" disabled>Copy all</button>
+    <button id="say" class="rounded-xl border-2 border-green-900 text-green-900 font-bold py-3 hover:bg-green-50 disabled:opacity-40" disabled>Listen</button>
+    <button id="shr" class="rounded-xl border-2 border-green-900 text-green-900 font-bold py-3 hover:bg-green-50 disabled:opacity-40" disabled>Share</button>
+  </div>
+  <section id="hs" class="mt-5 hidden">
+    <div class="flex justify-between items-center mb-2"><h2 class="text-sm font-medium text-stone-600">Recent (tap to reuse)</h2>
+      <button id="hc" class="text-sm text-stone-500 underline">Clear</button></div>
+    <div id="hl" class="flex flex-wrap gap-2"></div>
+  </section>
+
+  <p class="text-xs text-stone-500 mt-6 leading-relaxed">
+    Supports up to 99,99,99,99,999 (Arab) and paisa up to 2 decimals. Nepali spellings follow common usage; always check the wording with your bank before issuing a large cheque.
+  </p>
+</main>
+
+<div id="toast" class="fixed left-1/2 -translate-x-1/2 bottom-6 bg-stone-900 text-white text-sm rounded-full px-4 py-2 opacity-0 pointer-events-none transition-opacity" style="bottom:max(1.5rem,env(safe-area-inset-bottom))"></div>
+
+<script>
+/* ============ Conversion library ============ */
+const EN1=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+const EN10=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+const EN_UNITS=["","Thousand","Lakh","Crore","Arab"];
+
+const NE=("शून्य,एक,दुई,तीन,चार,पाँच,छ,सात,आठ,नौ,दश,एघार,बाह्र,तेह्र,चौध,पन्ध्र,सोह्र,सत्र,अठार,उन्नाइस,"+
+"बीस,एक्काइस,बाइस,तेइस,चौबीस,पच्चीस,छब्बीस,सत्ताइस,अट्ठाइस,उनन्तीस,तीस,एकतीस,बत्तीस,तेत्तीस,चौँतीस,पैँतीस,छत्तीस,सैँतीस,अठतीस,उनन्चालीस,"+
+"चालीस,एकचालीस,बयालीस,त्रिचालीस,चवालीस,पैंतालीस,छयालीस,सतचालीस,अठचालीस,उनन्चास,पचास,एकाउन्न,बाउन्न,त्रिपन्न,चउन्न,पचपन्न,छपन्न,सन्ताउन्न,अन्ठाउन्न,उनन्साठी,"+
+"साठी,एकसट्ठी,बासट्ठी,त्रिसट्ठी,चौसट्ठी,पैँसट्ठी,छयासट्ठी,सतसट्ठी,अठसट्ठी,उनन्सत्तरी,सत्तरी,एकहत्तर,बहत्तर,त्रिहत्तर,चौहत्तर,पचहत्तर,छयहत्तर,सतहत्तर,अठहत्तर,उनासी,"+
+"असी,एकासी,बयासी,त्रियासी,चौरासी,पचासी,छयासी,सतासी,अठासी,उनान्नब्बे,नब्बे,एकान्नब्बे,बयान्नब्बे,त्रियान्नब्बे,चौरान्नब्बे,पन्चानब्बे,छयान्नब्बे,सन्तान्नब्बे,अन्ठान्नब्बे,उनान्सय").split(",");
+const NR=("Shunya,Ek,Dui,Teen,Chaar,Paanch,Chha,Saat,Aath,Nau,Das,Eghaar,Baahra,Tehra,Chaudha,Pandhra,Sohra,Satra,Athaara,Unnaais,"+
+"Bis,Ekkaais,Baais,Teis,Chaubis,Pachchis,Chhabbis,Sattaais,Atthaais,Unantis,Tis,Ektis,Battis,Tettis,Chautis,Paitis,Chhattis,Saitis,Athtis,Unanchalis,"+
+"Chalis,Ekchalis,Bayalis,Trichalis,Chauwalis,Paitalis,Chhayalis,Satchalis,Athchalis,Unanchaas,Pachaas,Ekaunna,Baunna,Tripanna,Chaunna,Pachpanna,Chhapanna,Santaunna,Anthaunna,Unansaathi,"+
+"Saathi,Eksatthi,Baasatthi,Trisatthi,Chausatthi,Paisatthi,Chhayasatthi,Satsatthi,Athsatthi,Unansattari,Sattari,Ekhattar,Bahattar,Trihattar,Chauhattar,Pachahattar,Chhayahattar,Sathattar,Athahattar,Unaasi,"+
+"Asi,Ekaasi,Bayaasi,Triyaasi,Churaasi,Pachaasi,Chhayaasi,Sataasi,Athaasi,Unannabbe,Nabbe,Ekaanabbe,Bayaanabbe,Triyaanabbe,Churaanabbe,Panchaanabbe,Chhayaanabbe,Santaanabbe,Anthaanabbe,Unansay").split(",");
+const NE_UNITS=["","हजार","लाख","करोड","अर्ब"];
+const NR_UNITS=["","Hajar","Lakh","Karod","Arab"];
+
+/* Indian grouping: last 3 digits, then pairs. Returns [hundredsPart(0-999), thousand, lakh, crore, arab] */
+function groups(intStr){
+  const s=intStr.replace(/^0+(?=\d)/,"");
+  const g=[+s.slice(-3)];
+  let rest=s.slice(0,-3);
+  while(rest.length){ g.push(+rest.slice(-2)); rest=rest.slice(0,-2); }
+  return g;
+}
+function enBelow100(n){ return n<20?EN1[n]:EN10[Math.floor(n/10)]+(n%10?"-"+EN1[n%10]:""); }
+function enBelow1000(n){
+  const h=Math.floor(n/100), r=n%100, p=[];
+  if(h)p.push(EN1[h]+" Hundred");
+  if(r)p.push(enBelow100(r));
+  return p.join(" ");
+}
+function build(g,lang){
+  const out=[];
+  for(let i=g.length-1;i>=0;i--){
+    const n=g[i]; if(!n) continue;
+    let w;
+    if(lang==="en") w=(i===0?enBelow1000(n):enBelow100(n))+(i?" "+EN_UNITS[i]:"");
+    else {
+      const D=lang==="ne"?NE:NR, U=lang==="ne"?NE_UNITS:NR_UNITS, say=lang==="ne"?"सय":"Say";
+      if(i===0){ const h=Math.floor(n/100), r=n%100, p=[];
+        if(h)p.push(D[h]+" "+say); if(r)p.push(D[r]); w=p.join(" ");
+      } else w=D[n]+" "+U[i];
+    }
+    out.push(w);
+  }
+  return out.join(" ");
+}
+
+function toWords(raw,{rupees=false}={}){
+  let s=String(raw).trim();
+  const dev="०१२३४५६७८९";
+  s=s.replace(/[०-९]/g,c=>dev.indexOf(c)).replace(/[,\s]/g,"");
+  if(s==="") return {empty:true};
+  if(s.startsWith("-")) return {error:"Cheque amounts can’t be negative. Remove the minus sign."};
+  if(!/^[0-9.]+$/.test(s)) return {error:"Use digits only (0–9). Commas and one decimal point are fine."};
+  if((s.match(/\./g)||[]).length>1) return {error:"Only one decimal point is allowed."};
+  let [i,d=""]=s.split(".");
+  if(i==="") i="0";
+  if(d.length>2) return {error:"Paisa can have at most 2 decimal places."};
+  i=i.replace(/^0+(?=\d)/,"");
+  if(i.length>11) return {error:"Amount is too large. The limit is 99,99,99,99,999."};
+  const paisa=d?+d.padEnd(2,"0"):0, g=groups(i), zero=g.every(x=>!x);
+  const R={en:"Rupees ",ne:"रुपैयाँ ",nr:"Rupaiyan "};
+  const Z={en:"Zero",ne:"शून्य",nr:"Shunya"};
+  const AND={en:" and ",ne:" र ",nr:" ra "};
+  const P={en:" Paisa",ne:" पैसा",nr:" Paisa"};
+  const ONLY={en:" Only",ne:" मात्र",nr:" Matra"};
+  const res={};
+  for(const L of ["en","ne","nr"]){
+    let t=zero?(paisa?"":Z[L]):build(g,L);
+    if(paisa){
+      const pw=L==="en"?enBelow100(paisa):(L==="ne"?NE:NR)[paisa];
+      t=(zero?"":t+AND[L])+pw+P[L];
+    }
+    res[L]=(rupees&&!zero?R[L]:"")+t+ONLY[L];
+  }
+  return {words:res,g,formatted:formatIN(i)+(d?"."+d:"")};
+}
+function formatIN(i){
+  i=i.replace(/^0+(?=\d)/,"");
+  if(i.length<=3) return i;
+  const last=i.slice(-3); let rest=i.slice(0,-3);
+  return rest.replace(/\B(?=(\d{2})+(?!\d))/g,",")+","+last;
+}
+
+/* ============ UI ============ */
+const $=id=>document.getElementById(id);
+const cards=[
+  {k:"en",label:"English",cls:""},
+  {k:"ne",label:"नेपाली (देवनागरी)",cls:"dev"},
+  {k:"nr",label:"Nepali in English letters",cls:""}
+];
+$("cards").innerHTML=cards.map(c=>`
+  <div class="bg-white rounded-2xl border border-stone-200 shadow-sm p-4">
+    <div class="flex items-center justify-between gap-3 mb-1">
+      <h2 class="text-sm font-medium text-stone-600 ${c.k==='ne'?'dev':''}">${c.label}</h2>
+      <button data-copy="${c.k}" disabled class="cp rounded-lg border border-stone-300 px-3 py-1 text-sm font-medium hover:bg-stone-100 disabled:opacity-40">Copy</button>
+    </div>
+    <p id="o-${c.k}" class="${c.cls} text-lg leading-snug break-words text-stone-400">—</p>
+  </div>`).join("");
+
+let cur=null, tab="en", hist=[];
+try{hist=JSON.parse(localStorage.getItem("cwc")||"[]")}catch{}
+const buzz=()=>{try{navigator.vibrate&&navigator.vibrate(8)}catch{}};
+function renderPreview(){
+  const p=$("pTxt");
+  p.textContent=cur?cur[tab]:"Your amount in words appears here";
+  p.classList.toggle("dev",tab==="ne");
+  document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",b.dataset.k===tab));
+}
+function setAmt(v){ $("amt").value=v; $("amt").dispatchEvent(new Event("input")); }
+function remember(){
+  if(!cur) return;
+  const a=$("amt").value; hist=[a,...hist.filter(x=>x!==a)].slice(0,5);
+  try{localStorage.setItem("cwc",JSON.stringify(hist))}catch{}
+  renderHist();
+}
+function renderHist(){
+  $("hs").classList.toggle("hidden",!hist.length);
+  $("hl").innerHTML=hist.map(h=>`<button class="hi chip rounded-full bg-white border border-stone-300 px-3 py-1 text-sm hover:bg-stone-100">Rs. ${h}</button>`).join("");
+  document.querySelectorAll(".hi").forEach((b,i)=>b.onclick=()=>{setAmt(hist[i]);buzz();});
+}
+function toast(m){const t=$("toast");t.textContent=m;t.style.opacity=1;clearTimeout(t._h);t._h=setTimeout(()=>t.style.opacity=0,1600);}
+async function copy(text){
+  try{ await navigator.clipboard.writeText(text); }
+  catch{ const a=document.createElement("textarea");a.value=text;a.style.position="fixed";a.style.opacity=0;document.body.appendChild(a);a.select();document.execCommand("copy");a.remove(); }
+  toast("Copied");remember();
+}
+function update(){
+  const input=$("amt"), raw=input.value;
+  const r=toWords(raw,{rupees:$("rs").checked});
+  $("err").textContent=r.error||"";
+  cur=r.words||null;
+  document.querySelectorAll(".cp").forEach(b=>b.disabled=!cur);
+  $("all").disabled=!cur;
+  for(const c of cards){
+    const el=$("o-"+c.k);
+    el.textContent=cur?cur[c.k]:"—";
+    el.classList.toggle("text-stone-400",!cur);
+    el.classList.toggle("text-stone-900",!!cur);
+  }
+  renderPreview();
+  $("say").disabled=$("shr").disabled=!cur;
+  $("brk").innerHTML=cur?r.g.map((n,i)=>[n,i]).reverse().filter(x=>x[0]).map(([n,i])=>
+    `<span class="chip rounded-lg bg-white/80 border border-green-900/30 px-2 py-1 text-sm text-green-950" title="${i?NE_UNITS[i]:''}">${n}${i?" "+EN_UNITS[i]:""}${i?` <span class="dev text-green-800/70">${NE_UNITS[i]}</span>`:""}</span>`).join(""):"";
+  $("pNum").textContent=r.formatted||"0";
+}
+$("amt").addEventListener("input",e=>{
+  // live Nepali-style comma formatting while typing
+  const v=e.target.value.replace(/[०-९]/g,c=>"०१२३४५६७८९".indexOf(c));
+  if(/^[0-9,]*\.?[0-9]*$/.test(v.replace(/\s/g,""))){
+    const clean=v.replace(/[,\s]/g,""), [i,d]=clean.split(".");
+    if(i.length<=11) e.target.value=formatIN(i)+(clean.includes(".")?"."+(d||"").slice(0,3):"");
+  }
+  update();
+});
+$("rs").addEventListener("change",update);
+$("clr").onclick=()=>{$("amt").value="";update();$("amt").focus();};
+document.querySelectorAll(".ex").forEach(b=>b.onclick=()=>{
+  const [i,d]=b.dataset.v.split("."); $("amt").value=formatIN(i)+(d?"."+d:""); update();
+});
+document.querySelectorAll(".cp").forEach(b=>b.onclick=()=>cur&&copy(cur[b.dataset.copy]));
+$("all").onclick=()=>cur&&copy([cur.en,cur.ne,cur.nr].join("\n"));
+$("today").textContent=new Date().toLocaleDateString("en-GB");
+
+const KEYS=["1","2","3","4","5","6","7","8","9",".","0","⌫"];
+$("kp").innerHTML=KEYS.map(k=>`<button class="key" data-k="${k}" aria-label="${k==='⌫'?'Backspace':k}">${k}</button>`).join("")
+  +`<button class="key col-span-3 text-base" data-k="00">00</button>`;
+$("kp").onclick=e=>{
+  const k=e.target.closest(".key"); if(!k) return; buzz();
+  let v=$("amt").value;
+  if(k.dataset.k==="⌫") v=v.slice(0,-1);
+  else if(k.dataset.k==="."){ if(v.includes(".")) return; v=(v||"0")+"."; }
+  else v+=k.dataset.k;
+  setAmt(v);
+};
+$("kpT").onclick=()=>{
+  const open=$("kp").classList.toggle("hidden")===false;
+  $("kpT").textContent=open?"Hide keypad":"Show keypad";
+  $("kpT").setAttribute("aria-expanded",open);
+  $("amt").inputMode=open?"none":"decimal";
+};
+document.querySelectorAll(".qa").forEach(b=>b.onclick=()=>{
+  buzz();
+  const base=parseFloat($("amt").value.replace(/,/g,""))||0;
+  const sum=Math.round((base+ +b.dataset.a)*100)/100;
+  if(String(Math.trunc(sum)).length>11) return toast("Limit reached");
+  const [i,d]=String(sum).split("."); setAmt(formatIN(i)+(d?"."+d:""));
+});
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{tab=b.dataset.k;renderPreview();});
+$("say").onclick=()=>{
+  if(!cur||!("speechSynthesis" in window)) return toast("Speech not supported here");
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(tab==="ne"?cur.ne:cur.en);
+  u.lang=tab==="ne"?"ne-NP":"en-IN"; u.rate=.85; speechSynthesis.speak(u);
+};
+$("shr").onclick=async()=>{
+  if(!cur) return;
+  const t="Rs. "+$("amt").value+"\n"+[cur.en,cur.ne,cur.nr].join("\n");
+  try{ if(navigator.share){await navigator.share({text:t});remember();return;} }catch{ return; }
+  copy(t);
+};
+$("hc").onclick=()=>{hist=[];try{localStorage.removeItem("cwc")}catch{} renderHist();};
+renderHist();
+update();
+</script>
+</body>
+</html>
